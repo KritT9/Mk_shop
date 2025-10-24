@@ -33,7 +33,7 @@ export default {
   methods: {
     async login() {
       try {
-        const res = await axios.post("http://localhost/MK_SHOP/php_api/login.php", {
+        const res = await axios.post("http://localhost:8081/MK_SHOP/php_api/login.php", {
           username: this.username,
           password: this.password,
         });

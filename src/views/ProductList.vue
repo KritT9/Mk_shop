@@ -18,7 +18,7 @@
       <div class="col-md-3" v-for="product in products" :key="product.product_id">
         <div class="card shadow-sm mb-4">
           <img
-            :src="'http://localhost/MK_SHOP/php_api/uploads/' + product.image"
+            :src="'http://localhost:8081/MK_SHOP/php_api/uploads/' + product.image"
             class="card-img-top"
             height="200"
             :alt="product.product_name"
@@ -117,7 +117,7 @@ export default {
     const fetchProducts = async () => {
       try {
         const response = await fetch(
-          "http://localhost/MK_SHOP/php_api/show_product.php"
+          "http://localhost:8081/MK_SHOP/php_api/show_product.php"
         );
         const result = await response.json();
         if (result.success) {
@@ -216,7 +216,7 @@ const submitOrder = async () => {
 
   try {
     const response = await fetch(
-      "http://localhost/MK_SHOP/php_api/order.php",
+      "http://localhost:8081/MK_SHOP/php_api/order.php",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

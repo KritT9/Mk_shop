@@ -39,7 +39,7 @@
           <td>
             <img
               v-if="product.image"
-              :src="'http://localhost/MK_SHOP/php_api/uploads/' + product.image"
+              :src="'http://localhost:8081/MK_SHOP/php_api/uploads/' + product.image"
               width="100"
             />
           </td>
@@ -118,7 +118,7 @@
                 <div v-if="isEditMode && editForm.image">
                   <p class="mt-2">รูปเดิม:</p>
                   <img
-                    :src="'http://localhost/MK_SHOP/php_api/uploads/' + editForm.image"
+                    :src="'http://localhost:8081/MK_SHOP/php_api/uploads/' + editForm.image"
                     width="100"
                   />
                 </div>
@@ -189,7 +189,7 @@ export default {
     // โหลดข้อมูล
     const fetchProducts = async () => {
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/api_product.php");
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/api_product.php");
         const data = await res.json();
         products.value = data.success ? data.data : [];
       } catch (err) {
@@ -241,7 +241,7 @@ export default {
       if (newImageFile.value) formData.append("image", newImageFile.value);
 
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/api_product.php", {
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/api_product.php", {
           method: "POST",
           body: formData
         });
@@ -266,7 +266,7 @@ export default {
       formData.append("product_id", id);
 
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/api_product.php", {
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/api_product.php", {
           method: "POST",
           body: formData
         });

@@ -130,7 +130,7 @@ export default {
       loading.value = true;
       error.value = null;
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/order_bill.php");
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/order_bill.php");
         const data = await res.json();
         if (data.success) {
           orders.value = data.data.map(o => ({

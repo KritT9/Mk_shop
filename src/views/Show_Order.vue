@@ -127,7 +127,7 @@ export default {
       loading.value = true;
       error.value = null;
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/show_orders.php");
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/show_orders.php");
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
           orders.value = data.data.map((o) => ({
@@ -179,7 +179,7 @@ export default {
 
     const updateStatus = async (order) => {
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/update_order_status.php", {
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/update_order_status.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ order_id: order.order_id, product_id: order.product_id, status: order.status }),
@@ -193,7 +193,7 @@ export default {
     const deleteOrder = async (order) => {
       if (!confirm(`คุณต้องการลบคำสั่งซื้อ ${order.order_id} หรือไม่?`)) return;
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/delete_order.php", {
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/delete_order.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ order_id: order.order_id, product_id: order.product_id }),
@@ -214,7 +214,7 @@ export default {
     const deleteAllCancelledOrders = async () => {
       if (!confirm("คุณต้องการลบคำสั่งซื้อที่ยกเลิกทั้งหมดหรือไม่?")) return;
       try {
-        const res = await fetch("http://localhost/MK_SHOP/php_api/delete_cancelled_orders.php", {
+        const res = await fetch("http://localhost:8081/MK_SHOP/php_api/delete_cancelled_orders.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
         });
