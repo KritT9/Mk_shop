@@ -1,8 +1,8 @@
 <template>
   <div class="container my-5">
+    
     <h2 class="text-center mb-4">เมนูสินค้า</h2>
 
-    <!-- ส่วนเลือกโต๊ะ -->
     <div class="mb-4 text-center">
       <label class="me-2 fw-bold">เลือกโต๊ะ:</label>
       <select v-model="selectedTable" class="form-select d-inline-block w-auto">
@@ -11,11 +11,23 @@
           โต๊ะ {{ table }}
         </option>
       </select>
+      
+      <div class="d-flex justify-content-center mt-3">
+        <button 
+          v-for="cat in categories" 
+          :key="cat.value"
+          :class="['btn', 'mx-1', 'btn-sm', {'btn-success': selectedCategory === cat.value, 'btn-outline-secondary': selectedCategory !== cat.value}]"
+          @click="selectedCategory = cat.value"
+        >
+          {{ cat.text }}
+        </button>
+      </div>
     </div>
 
-    <!-- แสดงสินค้า -->
-    <div class="row">
-      <div class="col-md-3" v-for="product in products" :key="product.product_id">
+    <div v-if="loading" class="text-center">กำลังโหลดสินค้า...</div>
+    <div v-else-if="error" class="alert alert-danger">❌ เกิดข้อผิดพลาดในการโหลดสินค้า: {{ error }}</div>
+    <div v-else class="row">
+      <div class="col-md-3" v-for="product in filteredProducts" :key="product.product_id">
         <div class="card shadow-sm mb-4">
           <img
             :src="'http://localhost:8081/MK_SHOP/php_api/uploads/' + product.image"
@@ -27,17 +39,16 @@
             <h5 class="card-title">{{ product.product_name }}</h5>
             <p class="card-text">{{ product.price }} บาท</p>
             <button class="btn btn-success" @click="addToCart(product)">
-              สั่งซื้อ
+              สั่งเลย
             </button>
           </div>
         </div>
       </div>
+      <div v-if="filteredProducts.length === 0" class="col-12 text-center text-muted">ไม่พบสินค้าในหมวดหมู่นี้</div>
     </div>
 
-    <!-- แสดงตะกร้าสินค้า -->
     <div class="mt-5">
       <h4>🧺 ตะกร้าสินค้า (โต๊ะ {{ selectedTable || '-' }})</h4>
-
       <table class="table table-bordered align-middle" v-if="cart.length > 0">
         <thead class="table-light">
           <tr>
@@ -90,7 +101,6 @@
 
       <div v-else class="text-muted">ยังไม่มีสินค้าในตะกร้า</div>
 
-      <!-- ปุ่มยืนยันสั่งซื้อ -->
       <div class="text-end mt-3" v-if="cart.length > 0">
         <button class="btn btn-primary" @click="submitOrder">
           ยืนยันการสั่งซื้อ
@@ -99,21 +109,29 @@
     </div>
   </div>
 </template>
-
 <script>
 import { ref, computed, onMounted } from "vue";
 
 export default {
   name: "ProductList",
   setup() {
-    const products = ref([]); // เก็บข้อมูลสินค้า
-    const cart = ref([]); // เก็บรายการในตะกร้า
-    const selectedTable = ref(""); // โต๊ะที่เลือก
-    const tables = [1, 2, 3, 4, 5]; // ตัวเลือกโต๊ะ
+    const products = ref([]); // เก็บข้อมูลสินค้าทั้งหมด
+    const cart = ref([]);
+    const selectedTable = ref("");
+    const tables = [1, 2, 3, 4, 5];
     const loading = ref(true);
     const error = ref(null);
 
-    // ✅ ดึงข้อมูลสินค้า
+    // 🆕 ส่วนที่เพิ่ม: จัดการหมวดหมู่
+    const categories = ref([
+        { text: 'ทั้งหมด', value: 'all' },
+        { text: 'เครื่องดื่ม', value: 'เครื่องดื่ม' },
+        { text: 'อาหาร', value: 'เนื้อสัตว์' },
+        { text: 'พิเศษ', value: 'ผัก' }, // เพิ่มหมวดหมู่พิเศษ (ตามรูป)
+    ]);
+    const selectedCategory = ref('all'); // เริ่มต้นที่ 'ทั้งหมด'
+
+    // ✅ ดึงข้อมูลสินค้า (ยังคงเดิม แต่ต้องแน่ใจว่าสินค้ามี 'category' field)
     const fetchProducts = async () => {
       try {
         const response = await fetch(
@@ -121,7 +139,13 @@ export default {
         );
         const result = await response.json();
         if (result.success) {
-          products.value = result.data;
+          // ⚠️ ข้อสังเกต: ในโค้ดจริง คุณอาจต้องเพิ่ม field 'category' 
+          // ให้กับสินค้าแต่ละตัวจากการเรียก API
+products.value = result.data.map(p => ({
+  ...p,
+  // ใช้ category_name หรือ category_id จาก API ได้เลย
+  category: p.category_name === 'เครื่องดื่ม' ? 'เครื่องดื่ม' : 'เนื้อสัตว์' 
+}));
         } else {
           error.value = result.message;
         }
@@ -131,42 +155,50 @@ export default {
         loading.value = false;
       }
     };
+    
+    // 🆕 ส่วนที่เพิ่ม: กรองสินค้าตามหมวดหมู่ที่เลือก
+    const filteredProducts = computed(() => {
+        if (selectedCategory.value === 'all') {
+            return products.value;
+        }
+        // ในรูปมีสินค้า 'แดงโซดา' 'ชาไทย' 'ชาเขียว' 'น้ำเปล่า' เป็นเครื่องดื่ม (drink)
+        // และ 'หมูกระทะ' 'เนื้อ' 'ชุดรวม' เป็นอาหาร (food)
+        return products.value.filter(
+            (product) => product.category === selectedCategory.value
+        );
+    });
 
-    // ✅ เพิ่มสินค้าเข้าตะกร้า
+    // ... ฟังก์ชันอื่น ๆ ยังคงเดิม ...
+
+    // ✅ เพิ่มสินค้าเข้าตะกร้า (คงเดิม)
     const addToCart = (product) => {
-      if (!selectedTable.value) {
-        alert("⚠️ กรุณาเลือกโต๊ะก่อนสั่งสินค้า");
-        return;
-      }
+        if (!selectedTable.value) {
+            alert("⚠️ กรุณาเลือกโต๊ะก่อนสั่งสินค้า");
+            return;
+        }
+        const existing = cart.value.find(
+            (item) => item.product_id === product.product_id
+        );
 
-      // ตรวจว่าสินค้ามีในตะกร้าแล้วหรือยัง
-      const existing = cart.value.find(
-        (item) => item.product_id === product.product_id
-      );
-
-      if (existing) {
-        existing.quantity++;
-      } else {
-        // ✅ เพิ่มสินค้าใหม่เข้าตะกร้า
-        cart.value.push({
-          product_id: product.product_id,
-          product_name: product.product_name,
-          price: parseFloat(product.price),
-          quantity: 1,
-          
-        });
-      }
-
-      // ✅ แจ้งเตือนเพิ่มสำเร็จ
-      alert(`✅ เพิ่ม "${product.product_name}" ลงในตะกร้าสำเร็จ!`);
+        if (existing) {
+            existing.quantity++;
+        } else {
+            cart.value.push({
+                product_id: product.product_id,
+                product_name: product.product_name,
+                price: parseFloat(product.price),
+                quantity: 1,
+            });
+        }
+        alert(`✅ เพิ่ม "${product.product_name}" ลงในตะกร้าสำเร็จ!`);
     };
 
-    // ✅ เพิ่มจำนวนสินค้า
+    // ✅ เพิ่มจำนวนสินค้า (คงเดิม)
     const increaseQty = (item) => {
       item.quantity++;
     };
 
-    // ✅ ลดจำนวนสินค้า
+    // ✅ ลดจำนวนสินค้า (คงเดิม)
     const decreaseQty = (item) => {
       if (item.quantity > 1) {
         item.quantity--;
@@ -178,67 +210,65 @@ export default {
       }
     };
 
-    // ✅ ลบสินค้าออกจากตะกร้า
+    // ✅ ลบสินค้าออกจากตะกร้า (คงเดิม)
     const removeFromCart = (index) => {
       if (confirm("ยืนยันการลบสินค้านี้หรือไม่?")) {
         cart.value.splice(index, 1);
       }
     };
 
-    // ✅ คำนวณราคารวมทั้งหมด
+    // ✅ คำนวณราคารวมทั้งหมด (คงเดิม)
     const totalPrice = computed(() =>
       cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
     );
 
-    // ✅ ยืนยันการสั่งซื้อ
- // ✅ ยืนยันการสั่งซื้อ
-const submitOrder = async () => {
-  if (!selectedTable.value) {
-    alert("⚠️ กรุณาเลือกโต๊ะก่อนสั่งสินค้า");
-    return;
-  }
+    // ✅ ยืนยันการสั่งซื้อ (คงเดิม)
+    const submitOrder = async () => {
+        if (!selectedTable.value) {
+            alert("⚠️ กรุณาเลือกโต๊ะก่อนสั่งสินค้า");
+            return;
+        }
 
-  if (cart.value.length === 0) {
-    alert("⚠️ กรุณาเพิ่มสินค้าในตะกร้าก่อนสั่งซื้อ");
-    return;
-  }
+        if (cart.value.length === 0) {
+            alert("⚠️ กรุณาเพิ่มสินค้าในตะกร้าก่อนสั่งซื้อ");
+            return;
+        }
 
-  const orderData = {
-    table_no: selectedTable.value,
-    items: cart.value.map((item) => ({
-      product_id: item.product_id,
-      product_name: item.product_name,
-      quantity: item.quantity,
-      price: item.price,
-    })),
-    total: totalPrice.value,
-  };
+        const orderData = {
+            table_no: selectedTable.value,
+            items: cart.value.map((item) => ({
+                product_id: item.product_id,
+                product_name: item.product_name,
+                quantity: item.quantity,
+                price: item.price,
+            })),
+            total: totalPrice.value,
+        };
 
-  try {
-    const response = await fetch(
-      "http://localhost:8081/MK_SHOP/php_api/order.php",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
-      }
-    );
+        try {
+            const response = await fetch(
+                "http://localhost:8081/MK_SHOP/php_api/order.php",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(orderData),
+                }
+            );
 
-    const result = await response.json();
+            const result = await response.json();
 
-    if (result.success) {
-      alert("✅ สั่งซื้อสำเร็จ!");
-      cart.value = []; // ล้างตะกร้า
-    } else {
-      alert("❌ " + result.message);
-    }
-  } catch (error) {
-    alert("เกิดข้อผิดพลาด: " + error.message);
-  }
-};
+            if (result.success) {
+                alert("✅ สั่งซื้อสำเร็จ!");
+                cart.value = []; // ล้างตะกร้า
+            } else {
+                alert("❌ " + result.message);
+            }
+        } catch (error) {
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        }
+    };
 
 
-    // โหลดข้อมูลสินค้าทันทีเมื่อหน้าเริ่มต้น
     onMounted(fetchProducts);
 
     return {
@@ -254,6 +284,10 @@ const submitOrder = async () => {
       submitOrder,
       loading,
       error,
+      // 🆕 ส่วนที่เพิ่ม:
+      categories,
+      selectedCategory,
+      filteredProducts, // ส่ง filteredProducts ไปใช้ใน template
     };
   },
 };

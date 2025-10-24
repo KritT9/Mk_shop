@@ -22,6 +22,7 @@
         <tr>
           <th>ID</th>
           <th>ชื่อสินค้า</th>
+          <th>ประเภทสินค้า</th>
           <th>รายละเอียด</th>
           <th>ราคา</th>
           <th>จำนวน</th>
@@ -33,6 +34,7 @@
         <tr v-for="product in paginatedProducts" :key="product.product_id">
           <td>{{ product.product_id }}</td>
           <td>{{ product.product_name }}</td>
+          <td>{{ product.category_name }}</td>
           <td>{{ product.description }}</td>
           <td>{{ product.price }}</td>
           <td>{{ product.stock }}</td>
@@ -94,6 +96,16 @@
                 <label class="form-label">ชื่อสินค้า</label>
                 <input v-model="editForm.product_name" type="text" class="form-control" required />
               </div>
+            <div class="mb-3">
+  <label class="form-label">ประเภทสินค้า</label>
+  <select v-model="editForm.category_id" class="form-select" required>
+    <option disabled value="">-- เลือกประเภทสินค้า --</option>
+    <option v-for="cat in categories" :key="cat.category_id" :value="cat.category_id">
+      {{ cat.category_name }}
+    </option>
+  </select>
+</div>
+
               <div class="mb-3">
                 <label class="form-label">รายละเอียด</label>
                 <textarea v-model="editForm.description" class="form-control"></textarea>
@@ -142,12 +154,23 @@ export default {
   name: "ProductList",
   setup() {
     const products = ref([]);
+    const categories = ref([]);
+    const fetchCategories = async () => {
+  try {
+    const res = await fetch("http://localhost:8081/MK_SHOP/php_api/api_category.php");
+    const data = await res.json();
+    categories.value = data.success ? data.data : [];
+  } catch (err) {
+    console.error("โหลดประเภทสินค้าล้มเหลว:", err);
+  }
+};
     const loading = ref(true);
     const error = ref(null);
     const isEditMode = ref(false);
     const editForm = ref({
       product_id: null,
       product_name: "",
+      category_id: "",
       description: "",
       price: "",
       stock: "",
@@ -204,6 +227,7 @@ export default {
       editForm.value = {
         product_id: null,
         product_name: "",
+        category_id: "",
         description: "",
         price: "",
         stock: "",
@@ -235,6 +259,7 @@ export default {
       formData.append("action", isEditMode.value ? "update" : "add");
       if (isEditMode.value) formData.append("product_id", editForm.value.product_id);
       formData.append("product_name", editForm.value.product_name);
+      formData.append("category_id", editForm.value.category_id);
       formData.append("description", editForm.value.description);
       formData.append("price", editForm.value.price);
       formData.append("stock", editForm.value.stock);
@@ -282,7 +307,10 @@ export default {
       }
     };
 
-    onMounted(fetchProducts);
+  onMounted(() => {
+  fetchProducts();
+  fetchCategories();
+});
 
     return {
       products,
@@ -290,6 +318,7 @@ export default {
       error,
       editForm,
       isEditMode,
+      categories,
       openAddModal,
       openEditModal,
       handleFileUpload,
