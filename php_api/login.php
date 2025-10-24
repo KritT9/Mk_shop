@@ -19,16 +19,17 @@ $username = trim($data['username']);
 $password = trim($data['password']);
 
 try {
-    $stmt = $conn->prepare("SELECT * FROM admin WHERE username = ? AND password = ?");
+    $stmt = $conn->prepare("SELECT * FROM employees WHERE username = ? AND password = ?");
     $stmt->execute([$username, $password]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
 
     if ($user) {
         echo json_encode([
             "success" => true,
             "message" => "Login successful.",
             "user" => [
-                "id" => $user['id'],
+                "id" => $user['employee_id'],
                 "username" => $user['username']
             ]
         ]);
